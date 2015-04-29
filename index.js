@@ -6,13 +6,15 @@ let nodeify = require('bluebird-nodeify')
 let mime = require('mime-types')
 let rimraf = require('rimraf')
 let mkdirp = require('mkdirp')
+let argv = require('yargs')
+	.argv
 
 require('longjohn')
 require('songbird')
 
 const NODE_ENV = process.env.NODE_ENV
 const PORT = process.env.PORT || 8000
-const ROOT_DIR = path.resolve(process.cwd())
+const ROOT_DIR = argv.dir || path.resolve(process.cwd())
 
 let app = express()
 
