@@ -1,4 +1,4 @@
-Node Proxy Server
+Node Dropbox
 ===
 This is a simple Dropbox clone built in Node.js. The idea was to create the basic RESTful HTTP methods, and then build upon them by introducing a CLI and TCP functionality to automatically synchronize multiple locations.
 
