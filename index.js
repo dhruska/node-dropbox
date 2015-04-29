@@ -96,7 +96,7 @@ function sendHeaders(req, res, next) {
 			return
 		}
 
-		res.setHeader('Content-Length', stat.size)
+		res.setHeader('Content-Length', req.stat.size)
 		let contentType = mime.contentType(path.extname(req.filePath))
 		res.setHeader('Content-Type', contentType)
 
