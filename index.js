@@ -4,6 +4,7 @@ let express = require('express')
 let morgan = require('morgan')
 let nodeify = require('bluebird-nodeify')
 let mime = require('mime-types')
+let rimraf = require('rimraf')
 
 require('songbird')
 
@@ -32,12 +33,12 @@ app.head('*', setFileMeta, sendHeaders, (req, res) => res.end())
 
 function setFileMeta(req, res, next) {
 	req.filePath = path.resolve(path.join(ROOT_DIR, req.url))
-	if (filePath.indexOf(ROOT_DIR) !== 0) {
+	if (req.filePath.indexOf(ROOT_DIR) !== 0) {
 		res.send(400, 'Invalid path')
 		return
 	}
-	fs.promise.stat(filePath)
-		.then(stat => req.stat = stat)
+	fs.promise.stat(req.filePath)
+		.then(stat => req.stat = stat, ()=> req.stat = null)
 		.nodeify(next)
 }
 
@@ -57,3 +58,14 @@ function sendHeaders(req, res, next) {
 
 	}(), next) // Use nodeify to call next on success or failure
 }
+
+app.delete('*', setFileMeta, (req, res, next) => {
+	async ()=> {
+		if (!req.stat) return res.send(400, 'Invalid Path')
+
+		if (req.stat && req.stat.isDirectory()) {
+			await rimraf.promise(req.filePath)
+		} else await fs.promise.unlink(req.filePath)
+		res.end()
+	}().catch(next) // Call next on failure
+})
