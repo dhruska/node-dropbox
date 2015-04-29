@@ -46,6 +46,7 @@ app.delete('*', setFileMeta, (req, res, next) => {
 
 app.put('*', setFileMeta, setDirDetails, (req, res, next) => {
 	async ()=> {
+		if (req.stat) return res.send(405, 'File exists')
 		await mkdirp.promise(req.dirPath)
 
 		if (!req.isDir) req.pipe(fs.createWriteStream(req.filePath)) // Filepath is a file
@@ -53,10 +54,19 @@ app.put('*', setFileMeta, setDirDetails, (req, res, next) => {
 	}().catch(next)
 })
 
+app.post('*', setFileMeta, setDirDetails, (req, res, next) => {
+	async ()=> {
+		if (!req.stat) return res.send(405, 'File does not exist')
+		if (req.isDir) return res.send(405, 'Path is a directory') // This is an advanced case
+
+		await fs.promise.truncate(req.filePath, 0)
+		req.pipe(fs.createWriteStream(req.filePath)) // Filepath is a file
+		res.end()
+	}().catch(next)
+})
+
 
 function setDirDetails(req, res, next) {
-	if (req.stat) return res.send(405, 'File exists')
-
 	let filePath = req.filePath
 	let endsWithSlash = filePath.charAt(filePath.length-1) === path.sep
 	let hasExt = path.extname(filePath) !== ''
