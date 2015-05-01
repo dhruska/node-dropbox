@@ -7,16 +7,22 @@ let mime = require('mime-types')
 let rimraf = require('rimraf')
 let mkdirp = require('mkdirp')
 let argv = require('yargs')
+	.default('dir', process.cwd())
 	.argv
+let net = require('net')
+let JsonSocket = require('json-socket')
+let bodyParser = require('body-parser')
 
 require('longjohn')
 require('songbird')
 
 const NODE_ENV = process.env.NODE_ENV
 const PORT = process.env.PORT || 8000
-const ROOT_DIR = argv.dir || path.resolve(process.cwd())
+const ROOT_DIR = path.resolve(argv.dir)
 
 let app = express()
+
+var urlEncodedParser = bodyParser.urlencoded({extended: false})
 
 if (NODE_ENV === 'development') {
 	app.use(morgan('dev'))
@@ -41,28 +47,35 @@ app.delete('*', setFileMeta, (req, res, next) => {
 
 		if (req.stat && req.stat.isDirectory()) {
 			await rimraf.promise(req.filePath)
-		} else await fs.promise.unlink(req.filePath)
+		} else {
+			await fs.promise.unlink(req.filePath)
+		}
 		res.end()
 	}().catch(next) // Call next on failure
 })
 
-app.put('*', setFileMeta, setDirDetails, (req, res, next) => {
+app.put('*', setFileMeta, setDirDetails, urlEncodedParser, (req, res, next) => {
 	async ()=> {
 		if (req.stat) return res.send(405, 'File exists')
 		await mkdirp.promise(req.dirPath)
 
-		if (!req.isDir) req.pipe(fs.createWriteStream(req.filePath)) // Filepath is a file
+		if (!req.isDir) {
+			req.pipe(fs.createWriteStream(req.filePath)) // Filepath is a file
+		}
+		console.log(JSON.stringify(req.body))
+		sendToClients('create', req.filePath, req.isDir ? 'dir' : 'file', req.body, Date.now())
 		res.end()
 	}().catch(next)
 })
 
-app.post('*', setFileMeta, setDirDetails, (req, res, next) => {
+app.post('*', setFileMeta, setDirDetails, urlEncodedParser, (req, res, next) => {
 	async ()=> {
 		if (!req.stat) return res.send(405, 'File does not exist')
 		if (req.isDir) return res.send(405, 'Path is a directory') // This is an advanced case
 
 		await fs.promise.truncate(req.filePath, 0)
 		req.pipe(fs.createWriteStream(req.filePath)) // Filepath is a file
+		sendToClients('update', req.filePath, 'file', req.data, Date.now())
 		res.end()
 	}().catch(next)
 })
@@ -104,3 +117,27 @@ function sendHeaders(req, res, next) {
 
 	}(), next) // Use nodeify to call next on success or failure
 }
+
+
+// TCP
+const HOST = '127.0.0.1'
+const TCP_PORT = 9838
+
+var sendToClients;
+var server = net.createServer()
+server.listen(TCP_PORT)
+server.on('connection', function(socket) {
+    socket = new JsonSocket(socket)
+    socket.on('message', function(message) {
+        // Message received from client
+    })
+    sendToClients = function(action, path, type, contents, time) {
+		socket.sendMessage({
+			"action": action,
+			"path": path,
+			"type": type,
+			"contents": contents,
+			"time": time
+		})
+	}
+})
