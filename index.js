@@ -64,7 +64,7 @@ app.put('*', setFileMeta, setDirDetails, urlEncodedParser, (req, res, next) => {
 		if (!req.isDir) {
 			req.pipe(fs.createWriteStream(req.filePath)) // Filepath is a file
 		}
-		console.log(JSON.stringify(req.body))
+		
 		sendToClients('create', req.filePath, req.isDir ? 'dir' : 'file', req.body, Date.now())
 		res.end()
 	}().catch(next)
