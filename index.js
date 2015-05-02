@@ -50,7 +50,7 @@ app.delete('*', setFileMeta, (req, res, next) => {
 			sendToClients('delete', req.filePath, 'dir', null, Date.now())
 		} else {
 			await fs.promise.unlink(req.filePath)
-			sendToClients('delete', req.filePath, 'file', null, Date.now())
+			sendToClients('delete', req.url, 'file', null, Date.now())
 		}
 		res.end()
 	}().catch(next) // Call next on failure
@@ -64,8 +64,8 @@ app.put('*', setFileMeta, setDirDetails, urlEncodedParser, (req, res, next) => {
 		if (!req.isDir) {
 			req.pipe(fs.createWriteStream(req.filePath)) // Filepath is a file
 		}
-		
-		sendToClients('create', req.filePath, req.isDir ? 'dir' : 'file', req.body, Date.now())
+
+		sendToClients('create', req.url, req.isDir ? 'dir' : 'file', req.body, Date.now())
 		res.end()
 	}().catch(next)
 })
@@ -77,7 +77,7 @@ app.post('*', setFileMeta, setDirDetails, urlEncodedParser, (req, res, next) => 
 
 		await fs.promise.truncate(req.filePath, 0)
 		req.pipe(fs.createWriteStream(req.filePath)) // Filepath is a file
-		sendToClients('update', req.filePath, 'file', req.data, Date.now())
+		sendToClients('update', req.url, 'file', req.data, Date.now())
 		res.end()
 	}().catch(next)
 })
