@@ -62,9 +62,9 @@ app.put('*', urlEncodedParser, setFileMeta, setDirDetails, (req, res, next) => {
 		if (req.stat) return res.send(405, 'File exists')
 		await mkdirp.promise(req.dirPath)
 
-		if (!req.isDir) {
+		if (!req.isDir) { // Filepath is a file
 			let stream = fs.createWriteStream(req.filePath)
-			req.pipe(stream) // Filepath is a file
+			req.pipe(stream)
 			stream.write(req.msg)
 		}
 
@@ -73,15 +73,16 @@ app.put('*', urlEncodedParser, setFileMeta, setDirDetails, (req, res, next) => {
 	}().catch(next)
 })
 
-app.post('*', setFileMeta, setDirDetails, urlEncodedParser, (req, res, next) => {
+app.post('*', urlEncodedParser, setFileMeta, setDirDetails, (req, res, next) => {
 	async ()=> {
 		if (!req.stat) return res.send(405, 'File does not exist')
 		if (req.isDir) return res.send(405, 'Path is a directory') // This is an advanced case
 
 		await fs.promise.truncate(req.filePath, 0)
-		req.pipe(fs.createWriteStream(req.filePath)) // Filepath is a file
-		sendToClients('update', req.url, 'file', req.body, Date.now())
-		console.log('sent to clients: ' + req.url + ' with data: ' + req.body)
+		let stream = fs.createWriteStream(req.filePath)
+		req.pipe(stream) // Filepath is a file
+		stream.write(req.msg)
+		sendToClients('update', req.url, 'file', req.msg, Date.now())
 		res.end()
 	}().catch(next)
 })

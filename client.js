@@ -40,7 +40,7 @@ socket.on('connect', function() {
 	        		if (message.type === 'file') {
 	        			let stream = fs.createWriteStream(filePath)
 	        			stream.write(message.contents)
-	        			strea.end()
+	        			stream.end()
 	        		} else {
 	        			console.log('Invalid command: update ' + message.type)
 	        		}
