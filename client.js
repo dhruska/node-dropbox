@@ -19,29 +19,31 @@ socket.connect(TCP_PORT, HOST)
 socket.on('connect', function() {
     socket.on('message', function(message) {
     	if (!!message) {
-    		// I was having trouble with express body-parser which is why the body is being sent in this format
-    		var keys = Object.keys(message.contents)
-    		var msg = !!keys && keys.length > 0 ? keys[0] : ''
     		var filePath = ROOT_DIR + message.path
     		var dirName = message.type === 'file' ? path.dirname(filePath) : filePath // path.dirname truncates the new folder if we're creating a dir
     		console.log(message)
 	        switch (message.action) {
 	        	case 'create':
 	        		mkdirp(dirName, (err) => {
-	        			console.log('dir created: ' + dirName)
 	        			if (err) return
 		        		if (message.type === 'file') {	
 		        			let stream = fs.createWriteStream(filePath)
-							stream.write(msg);
-							stream.end();
-							console.log('File created: ' + filePath + ', Contents: ' + msg)
+							stream.write(message.contents)
+							stream.end()
+							console.log('File created: ' + filePath + ', Contents: ' + message.contents)
 		        		} else if (message.type !== 'dir') {
 		        			console.log('Invalid command: create ' + message.type)
 		        		}
 		        	})
 	        	break
 	        	case 'update':
-
+	        		if (message.type === 'file') {
+	        			let stream = fs.createWriteStream(filePath)
+	        			stream.write(message.contents)
+	        			strea.end()
+	        		} else {
+	        			console.log('Invalid command: update ' + message.type)
+	        		}
 	        	break
 	        	case 'delete':
 	        		if (message.type === 'file') {

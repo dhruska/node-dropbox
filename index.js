@@ -11,6 +11,7 @@ let argv = require('yargs')
 	.argv
 let net = require('net')
 let JsonSocket = require('json-socket')
+let multer  = require('multer')
 let bodyParser = require('body-parser')
 
 require('longjohn')
@@ -56,16 +57,18 @@ app.delete('*', setFileMeta, (req, res, next) => {
 	}().catch(next) // Call next on failure
 })
 
-app.put('*', setFileMeta, setDirDetails, urlEncodedParser, (req, res, next) => {
+app.put('*', urlEncodedParser, setFileMeta, setDirDetails, (req, res, next) => {
 	async ()=> {
 		if (req.stat) return res.send(405, 'File exists')
 		await mkdirp.promise(req.dirPath)
 
 		if (!req.isDir) {
-			req.pipe(fs.createWriteStream(req.filePath)) // Filepath is a file
+			let stream = fs.createWriteStream(req.filePath)
+			req.pipe(stream) // Filepath is a file
+			stream.write(req.msg)
 		}
 
-		sendToClients('create', req.url, req.isDir ? 'dir' : 'file', req.body, Date.now())
+		sendToClients('create', req.url, req.isDir ? 'dir' : 'file', req.msg, Date.now())
 		res.end()
 	}().catch(next)
 })
@@ -77,7 +80,8 @@ app.post('*', setFileMeta, setDirDetails, urlEncodedParser, (req, res, next) => 
 
 		await fs.promise.truncate(req.filePath, 0)
 		req.pipe(fs.createWriteStream(req.filePath)) // Filepath is a file
-		sendToClients('update', req.url, 'file', req.data, Date.now())
+		sendToClients('update', req.url, 'file', req.body, Date.now())
+		console.log('sent to clients: ' + req.url + ' with data: ' + req.body)
 		res.end()
 	}().catch(next)
 })
@@ -98,6 +102,9 @@ function setFileMeta(req, res, next) {
 		res.send(400, 'Invalid path')
 		return
 	}
+    // I was having trouble with express body-parser which is why the body is being sent in this format
+	var keys = !!req.body ? Object.keys(req.body) : undefined
+	req.msg = !!keys && keys.length > 0 ? keys[0] : ''
 	fs.promise.stat(req.filePath)
 		.then(stat => req.stat = stat, ()=> req.stat = null)
 		.nodeify(next)
