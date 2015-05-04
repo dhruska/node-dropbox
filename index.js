@@ -48,7 +48,7 @@ app.delete('*', setFileMeta, (req, res, next) => {
 
 		if (req.stat && req.stat.isDirectory()) {
 			await rimraf.promise(req.filePath)
-			sendToClients('delete', req.filePath, 'dir', null, Date.now())
+			sendToClients('delete', req.url, 'dir', null, Date.now())
 		} else {
 			await fs.promise.unlink(req.filePath)
 			sendToClients('delete', req.url, 'file', null, Date.now())

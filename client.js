@@ -5,6 +5,7 @@ let mkdirp = require('mkdirp')
 let argv = require('yargs')
 	.default('dir', process.cwd())
 	.argv
+let rimraf = require('rimraf')
 let JsonSocket = require('json-socket')
 
 const NODE_ENV = process.env.NODE_ENV
@@ -46,14 +47,18 @@ socket.on('connect', function() {
 	        		}
 	        	break
 	        	case 'delete':
-	        		if (message.type === 'file') {
-
-	        		} else if (message.type === 'dir') {
-
-	        		}
-	        		else {
-	        			console.log('Invalid command: delete ' + message.type)
-	        		}
+	        		console.log(message.type + ' ' + filePath)
+		       		if (message.type === 'file') {
+						fs.unlink(filePath, (err) => {
+							if (err) throw err
+						})
+		        	} else if (message.type === 'dir') {
+						rimraf(filePath, (err) => {
+							if (err) throw err
+						})
+		       		} else {
+		        		console.log('Invalid command: delete ' + message.type)
+		        	}
 				break
 	        	default:
 	        		console.log('Invalid command: ' + message.action)
